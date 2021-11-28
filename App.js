@@ -1,25 +1,145 @@
-import React from 'react';
-import { StyleSheet, Text, View, StatusBar, ScrollView } from 'react-native';
-import AppLoading from 'expo-app-loading';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import DataSlider from './components/date_slider.js'
-import Lesson from './components/lesson_schedule.js'
-import { Day, DayWeek, MonthYear } from './components/require_date.js'
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef} from 'react';
+import {Day, DayWeek, MonthYear} from './Components/require_date.js';
+
+import {
+  findNodeHandle,
+  View,
+  StyleSheet, 
+  Text, 
+  Dimensions, 
+  FlatList, 
+  Animated,
+  Image,
+  interpolate,
+  TouchableOpacity,
+} from 'react-native';
+
+
+const {width, height} = Dimensions.get('screen');
+
+var Days = {
+  0: 
+    'https://cs9.pikabu.ru/post_img/big/2019/11/21/8/1574343494192231267.jpg',
+  1:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg',
+  2:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg',
+  3:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg',
+  4:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg',
+  5:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg',
+  6:
+    'https://i02.appmifile.com/images/2019/09/13/94491275-f85c-4da6-bbbb-3e99f948a8fc.jpg'
+};
+
+var data = Object.keys(Days).map((i) => ({
+  key: i,
+  title: i,
+  Day: Days[i],
+  ref: React.createRef(),
+}));
+
+const Tab = React.forwardRef(({item, onItemPress}, ref) => {
+  return (
+    <TouchableOpacity onPress ={onItemPress}>
+      <View ref = {ref}>
+        <Text style={styles.date_slider}>
+          <DayWeek index = {1} minus = {item.title - 0}/>{"\n"}
+          <Day index={item.title - 0} slider={true}/>
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+
+const Indicator = ({measures, scrollX}) =>{
+  const inputRange = data.map((_, i) => i * width);
+  const indicatorWidth = scrollX.interpolate({
+    inputRange,
+    outputRange: measures.map((measure) => measure.width),
+  });
+
+  const translateX = scrollX.interpolate({
+    inputRange,
+    outputRange: measures.map((measure) => measure.x),
+  });
+
+  return (
+    <Animated.View
+      style = {{
+        position: 'absolute',
+        height: 40,
+        width: indicatorWidth,
+        left: translateX,
+        bottom: 15,
+        borderRadius: 10,
+        flex: 1,
+        borderWidth: 3,
+        borderColor:'#FF7648',
+      }}
+    />
+  )
+}
+
+const Tabs = ({data, scrollX, onItemPress}) =>{
+  const [measures, setMeasures] = React.useState([]);
+  const containerRef = React.useRef();
+  React.useEffect(()=>{
+    let m = [];
+    data.forEach(item => {
+      item.ref.current.measureLayout(
+        containerRef.current, 
+        (x, y, width, height) => {
+          m.push({
+            x, 
+            y, 
+            width, 
+            height,
+          });
+
+          if(m.length === data.length){
+            setMeasures(m);
+          }
+      }
+    );
+  });
+}, []);
+
+return (
+  <View style ={{position: 'absolute', top: 100, width}}> 
+    <View
+      ref={containerRef}
+      style ={styles.tabs}
+    >
+      {data.map((item, index) => {
+        return <Tab key={item.key} item={item} ref={item.ref} onItemPress={() => onItemPress(index)}/>
+      })}
+    </View>
+      {measures.length > 0 && (
+      <Indicator measures={measures} scrollX={scrollX}/>
+      )}
+  </View>
+  )
+}
 
 export default function App() {
-  let [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold
-  });
-  if (!fontsLoaded) {
-    return <AppLoading />;
-  } else {
-    return (
+  const scrollX = React.useRef(new Animated.Value(0)).current;
+  const ref = React.useRef();
+  const onItemPress = React.useCallback(itemIndex => {
+    ref?.current?.scrollToOffset({
+      offset: itemIndex * width
+    })
+  })
+
+  return (
       <View style={styles.container}>
-        <StatusBar />
+        <StatusBar hidden />
         <View style={styles.today}>
-          <Text style={styles.today_day}><Day></Day></Text>
+          <Text style={styles.today_day}><Day index={0}></Day></Text>
           <View style={styles.today_column}>
             <Text style={styles.today_day_week}><DayWeek></DayWeek></Text>
             <Text style={styles.today_year}><MonthYear></MonthYear></Text>
@@ -28,146 +148,127 @@ export default function App() {
             <Text style={styles.day_select_text}>Сьогодні</Text>
           </View>
         </View>
-        <View style={styles.date_slider}>
-          <DataSlider day_week={'ПН'} day_number={'22'} />
-          <DataSlider day_week={'ВТ'} day_number={'22'} select={true} />
-          <DataSlider day_week={'СР'} day_number={'23'} />
-          <DataSlider day_week={'ЧТ'} day_number={'24'} />
-          <DataSlider day_week={'ПТ'} day_number={'25'} />
-          <DataSlider day_week={'СБ'} day_number={'26'} />
-          <DataSlider day_week={'НД'} day_number={'27'} />
+        <View style={styles.lessons}>
+          <Text style={styles.lesson_text}>Час</Text>
+          <Text style={styles.lesson_text}>Пари</Text>
         </View>
-        <ScrollView>
-          <View style={styles.lesson_schedule}>
-
-            <View>
-
-              <View style={styles.lessons}>
-                <Text style={styles.lesson_text}>Час</Text>
-                <Text style={styles.lesson_text}>Пари</Text>
-              </View>
-              <View>
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-                <Lesson
-                  lesson_start_time={'11:35'}
-                  lesson_end_time={'13:05'}
-                  lesson_name={'Програмування'}
-                  lesson_description={'Лекція'}
-                  lesson_locate={'Аудиторія 1402'}
-                  lesson_teacher={'Шпортько О. В.'} />
-              </View>
+        <Tabs data={data} scrollX={scrollX} onItemPress={onItemPress}/>
+        <Animated.FlatList 
+          ref={ref}
+          data={data}
+          keyExtractor={item => item.key}
+          horizontal
+          showsHorizontalScrollIndicator = {false}
+          pagingEnabled
+          onScroll={
+            Animated.event(
+              [{nativeEvent: {contentOffset: {x: scrollX}}}],
+              {useNativeDriver: false},
+            )
+          }
+          renderItem={({item}) => {
+            return <View style ={{width, height}}>
+              <Image 
+                source = {{uri: item.Day}} 
+                style={{height: '80%',  top: 50}}/>
             </View>
-          </View>
-        </ScrollView>
+          }}
+        />
       </View>
     );
-  }
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#faf9f9',
-    paddingTop: 30,
-  },
-  today: {
-    paddingLeft: 28,
-    flexDirection: 'row',
-    fontSize: 14,
+    flex: 1,
+    backgroundColor: 'white',
     display: 'flex',
   },
-  today_day: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 44,
-    color: '#212525',
+
+  lessons: {
+    backgroundColor: 'white',
+    display: 'flex',
+    left: 20,
+    flexDirection: 'row',
   },
-  today_column: {
-    flexDirection: 'column',
-    alignSelf: 'center',
-    paddingLeft: 8,
-    bottom: 4,
-  },
-  today_day_week: {
-    fontFamily: 'Poppins_400Regular',
-    lineHeight: 21,
+  lesson_text: {
+    top: 40,
+    fontSize: 17,
+    paddingRight: 50,
     color: '#BCC1CD',
   },
-  today_year: {
-    fontFamily: 'Poppins_400Regular',
-    lineHeight: 21,
-    color: '#BCC1CD',
-  },
-  day_select_conteiner: {
+
+  tabs:{
+    backgroundColor: 'white',
+    borderTopRightRadius: 30,
+    borderTopLeftRadius: 30,
+    justifyContent: 'space-evenly',
     flex: 1,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingRight: 28,
+    flexDirection: 'row',
   },
-  day_select_text: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 16,
-    color: '#4DC591',
-    backgroundColor: 'rgba(77, 197, 145, 0.1)',
-    borderRadius: 8,
-    padding: 8,
-  },
+
   date_slider: {
+    textAlign: 'center',
+    flexDirection: 'column',
     backgroundColor: '#FFFFFF',
     borderTopEndRadius: 32,
     borderTopStartRadius: 32,
     flexDirection: 'row',
-    paddingTop: 16,
-    paddingBottom: 19,
-    paddingHorizontal: 28,
+    paddingTop: 10,
+    paddingBottom: 20,
+    paddingHorizontal: 15,
+    borderRadius: 30,
     borderColor: '#FAF9F9',
-    borderBottomWidth: 1,
+    color: 'black',
   },
-  lesson_schedule: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 7,
-    paddingHorizontal: 28,
-    borderColor: '#FAF9F9',
-  },
-  lessons: {
+
+  today: {
+    backgroundColor: '#faf9f9',
+    paddingBottom: 40,
+    paddingLeft: 30,
+    paddingTop: 20,
+    alignItems: 'flex-start',
+    paddingRight: 180,
     flexDirection: 'row',
+    fontSize: 30,
+    display: 'flex',
   },
-  lesson_text: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 14,
-    paddingRight: 47,
+
+  today_day: {
+    display: 'flex',
+    fontSize: 50,
+    color: '#212525',
+  },
+  today_column: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignSelf: 'center',
+    paddingLeft: 8,
+    bottom: 4,
+    fontSize: 40,
+  },
+  today_day_week: {
+    display: 'flex',
+    lineHeight: 21,
     color: '#BCC1CD',
+    fontSize: 20,
+    paddingTop: 10,
+  },
+  today_year: {
+    display: 'flex',
+    lineHeight: 21,
+    color: '#BCC1CD',
+    fontSize: 20,
+  },
+  day_select_text: {
+    display: 'flex',
+    position: 'absolute',
+    fontSize: 20,
+    color: '#4DC591',
+    backgroundColor: 'rgba(77, 197, 145, 0.1)',
+    borderRadius: 9,
+    left: 50,
+    top: 20,
+    padding: 5,
   },
 });

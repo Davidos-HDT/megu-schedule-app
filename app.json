@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "megu-schedule-app",
-    "slug": "megu-schedule-app",
+    "name": "MEGU",
+    "slug": "MEGU",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
